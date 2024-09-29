@@ -141,7 +141,7 @@ class _MainPageState extends State<MainPage> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+          children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -149,7 +149,7 @@ class _MainPageState extends State<MainPage> {
                   iconSize: 100,
                   icon:
                       Icon(isPlaying ? Icons.pause_circle : Icons.play_circle),
-                  onPressed: isPlaying ? _stopSound : _playSound,
+                  onPressed: isPlaying ? _pauseSound : _playSound,
                 ),
                 // Кнопка для добавления точки останова
                 IconButton(
@@ -159,66 +159,96 @@ class _MainPageState extends State<MainPage> {
                 ),
               ],
             ),
-            Stack(
-              alignment: Alignment.centerLeft,
-              children: [
-                Slider(
-                  min: 0,
-                  max: duration.inSeconds.toDouble(),
-                  value: position.inSeconds.toDouble(),
-                  onChanged: (double value) async {
-                    await player.seek(Duration(seconds: value.toInt()));
-                  },
-                ),
-                Row(
-                  children: breakpoints.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final breakpoint = entry.value;
-                    final breakpointPosition =
-                        breakpoint.position.inSeconds.toDouble();
-                    final percent = breakpointPosition / duration.inSeconds;
-                    return GestureDetector(
-                      onHorizontalDragStart: (details) {
-                        // Начало перетаскивания
-                        setState(() {
-                          draggingBreakpointIndex = index;
-                        });
+            // Внутри Stack, где отрисовываются точки останова
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // constraints.maxWidth - это ширина слайдера
+                return Stack(
+                  children: [
+                    Slider(
+                      min: 0,
+                      max: duration.inSeconds.toDouble(),
+                      value: position.inSeconds.toDouble(),
+                      onChanged: (double value) async {
+                        await player.seek(Duration(seconds: value.toInt()));
                       },
-                      onHorizontalDragUpdate: (details) {
-                        // Обновление позиции точки останова
-                        final newPosition = details.globalPosition.dx /
-                            MediaQuery.of(context).size.width;
-                        setState(() {
-                          breakpoints[index] = breakpoint.copyWith(
-                            position: Duration(
+                    ),
+                    ...breakpoints.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final breakpoint = entry.value;
+                      final breakpointPosition =
+                          breakpoint.position.inSeconds.toDouble();
+
+                      // Вычисляем точное процентное положение точки останова
+                      final percent = breakpointPosition / duration.inSeconds;
+
+                      // Рассчитываем точную позицию треугольника, учитывая ширину слайдера и padding
+                      final sliderTrackWidth = constraints.maxWidth -
+                          36; // Учитываем стандартный padding в 8 пикселей с каждой стороны
+
+                      final triangleLeftPosition = 12 +
+                          sliderTrackWidth *
+                              percent; // 8 пикселей отступа с краев слайдера, 10 пикселей для центрирования треугольника
+
+                      // Ограничиваем позицию треугольника в пределах слайдера
+                      final constrainedPosition =
+                          triangleLeftPosition.clamp(0.0, sliderTrackWidth);
+
+                      return Positioned(
+                        left:
+                            constrainedPosition, // Ограниченная позиция треугольника
+                        child: GestureDetector(
+                          onHorizontalDragStart: (details) {
+                            setState(() {
+                              draggingBreakpointIndex = index;
+                            });
+                          },
+                          onHorizontalDragUpdate: (details) {
+                            final renderBox =
+                                context.findRenderObject() as RenderBox;
+                            final localPosition = renderBox
+                                .globalToLocal(details.globalPosition)
+                                .dx;
+
+                            // Рассчитываем новое положение точки как процент от ширины слайдера
+                            final newPositionPercent =
+                                (localPosition) / sliderTrackWidth;
+                            final newPosition = Duration(
                                 seconds:
-                                    (duration.inSeconds * newPosition).toInt()),
-                          );
-                        });
-                      },
-                      onHorizontalDragEnd: (details) {
-                        // Конец перетаскивания
-                        setState(() {
-                          draggingBreakpointIndex = null;
-                        });
-                      },
-                      child: Container(
-                        margin: EdgeInsets.only(
-                            left: MediaQuery.of(context).size.width * percent -
-                                10),
-                        child: CustomPaint(
-                          painter: TrianglePainter(
-                            strokeColor: draggingBreakpointIndex == index
-                                ? Colors.blue
-                                : Colors.red,
-                            strokeWidth: 2,
+                                    (duration.inSeconds * newPositionPercent)
+                                        .toInt());
+
+                            setState(() {
+                              if (newPosition >= Duration.zero &&
+                                  newPosition <= duration) {
+                                breakpoints[index] = breakpoints[index]
+                                    .copyWith(position: newPosition);
+                              }
+                            });
+                          },
+                          onHorizontalDragEnd: (details) {
+                            setState(() {
+                              draggingBreakpointIndex = null;
+                            });
+                          },
+                          child: SizedBox(
+                            height: 40,
+                            width: 20,
+                            child: CustomPaint(
+                              painter: TrianglePainter(
+                                strokeColor: draggingBreakpointIndex == index
+                                    ? Colors.red
+                                    : Colors.blue,
+                                strokeWidth: 2,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+                      );
+                    }),
+                  ],
+                );
+              },
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -243,6 +273,14 @@ class _MainPageState extends State<MainPage> {
                       // Переход к точке останова
                       player.seek(breakpoint.position);
                     },
+                    // Добавляем trailing для отображения кнопки редактирования
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        // Открываем диалог для редактирования точки останова
+                        _editBreakpoint(index);
+                      },
+                    ),
                   );
                 },
               ),
@@ -250,6 +288,64 @@ class _MainPageState extends State<MainPage> {
           ],
         ),
       ),
+    );
+  }
+
+  // Функция для редактирования точки останова
+  void _editBreakpoint(int index) {
+    // Ставим на паузу при открытии диалога
+    if (isPlaying) {
+      _pauseSound();
+    }
+
+    // Создаем копию точки останова для редактирования
+    Breakpoint editedBreakpoint = breakpoints[index];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Редактировать точку останова'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                decoration: const InputDecoration(labelText: 'Название'),
+                controller: TextEditingController(text: editedBreakpoint.name),
+                onChanged: (value) {
+                  editedBreakpoint = editedBreakpoint.copyWith(name: value);
+                },
+              ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Описание'),
+                controller:
+                    TextEditingController(text: editedBreakpoint.description),
+                onChanged: (value) {
+                  editedBreakpoint =
+                      editedBreakpoint.copyWith(description: value);
+                },
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Отмена'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Сохранить'),
+              onPressed: () {
+                setState(() {
+                  breakpoints[index] = editedBreakpoint;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -261,7 +357,6 @@ class _MainPageState extends State<MainPage> {
   }
 }
 
-// Класс для рисования треугольника
 class TrianglePainter extends CustomPainter {
   final Color strokeColor;
   final double strokeWidth;
@@ -272,16 +367,16 @@ class TrianglePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = strokeColor
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
+      ..style = PaintingStyle.fill; // Используем заливку для треугольника
 
+    // Рисуем треугольник с острой вершиной вниз
     final path = Path();
-    path.moveTo(size.width / 2, 0);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
+    path.moveTo(size.width / 2, size.height - 20); // Вершина треугольника внизу
+    path.lineTo(size.width, 0); // Правая сторона треугольника
+    path.lineTo(0, 0); // Левая сторона треугольника
+    path.close(); // Закрываем путь для треугольника
 
-    canvas.drawPath(path, paint);
+    canvas.drawPath(path, paint); // Рисуем треугольник
   }
 
   @override
