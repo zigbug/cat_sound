@@ -180,19 +180,18 @@ class _MainPageState extends State<MainPage> {
                           breakpoint.position.inSeconds.toDouble();
 
                       // Вычисляем точное процентное положение точки останова
-                      final percent = breakpointPosition / duration.inSeconds;
+                      final percent = duration.inSeconds == 0
+                          ? 0
+                          : breakpointPosition / duration.inSeconds;
 
                       // Рассчитываем точную позицию треугольника, учитывая ширину слайдера и padding
-                      final sliderTrackWidth = constraints.maxWidth -
-                          36; // Учитываем стандартный padding в 8 пикселей с каждой стороны
-
-                      final triangleLeftPosition = 12 +
-                          sliderTrackWidth *
-                              percent; // 8 пикселей отступа с краев слайдера, 10 пикселей для центрирования треугольника
+                      final sliderTrackWidth = constraints.maxWidth - 48;
+                      final triangleLeftPosition =
+                          sliderTrackWidth * percent + 14; //
 
                       // Ограничиваем позицию треугольника в пределах слайдера
-                      final constrainedPosition =
-                          triangleLeftPosition.clamp(0.0, sliderTrackWidth);
+                      final constrainedPosition = triangleLeftPosition.clamp(
+                          0.0, sliderTrackWidth + 14);
 
                       return Positioned(
                         left:
@@ -266,20 +265,22 @@ class _MainPageState extends State<MainPage> {
                 itemCount: breakpoints.length,
                 itemBuilder: (context, index) {
                   final breakpoint = breakpoints[index];
-                  return ListTile(
-                    title: Text(breakpoint.name),
-                    subtitle: Text(breakpoint.description),
-                    onTap: () {
-                      // Переход к точке останова
-                      player.seek(breakpoint.position);
-                    },
-                    // Добавляем trailing для отображения кнопки редактирования
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () {
-                        // Открываем диалог для редактирования точки останова
-                        _editBreakpoint(index);
+                  return Card(
+                    child: ListTile(
+                      title: Text(breakpoint.name),
+                      subtitle: Text(breakpoint.description),
+                      onTap: () {
+                        // Переход к точке останова
+                        player.seek(breakpoint.position);
                       },
+                      // Добавляем trailing для отображения кнопки редактирования
+                      trailing: IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          // Открываем диалог для редактирования точки останова
+                          _editBreakpoint(index);
+                        },
+                      ),
                     ),
                   );
                 },
