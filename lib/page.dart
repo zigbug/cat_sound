@@ -82,7 +82,7 @@ class _MainPageState extends State<MainPage> {
           .toList();
 
       // Создаем имя файла для сохранения точек останова
-      String fileName = path.basenameWithoutExtension(trackPath) + '.pstn';
+      String fileName = '${path.basenameWithoutExtension(trackPath)}.pstn';
       String filePath = path.join(path.dirname(trackPath), fileName);
 
       // Записываем JSON в файл
@@ -92,7 +92,7 @@ class _MainPageState extends State<MainPage> {
     } catch (e) {
       print('Ошибка при сохранении точек останова: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка при сохранении точек останова')),
+        const SnackBar(content: Text('Ошибка при сохранении точек останова')),
       );
     }
   }
@@ -223,7 +223,7 @@ class _MainPageState extends State<MainPage> {
         String description = '';
 
         return AlertDialog(
-          title: const Text('Добавить точку останова'),
+          title: const Text('Добавить точку'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -294,7 +294,7 @@ class _MainPageState extends State<MainPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Редактировать точку останова'),
+          title: const Text('Редактировать точку'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -347,85 +347,122 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text(
+          widget.title,
+          style: const TextStyle(color: Colors.white),
+        ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Чипсы для выбора трека
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            opacity: 0.4,
+            image: AssetImage(
+                'assets/photo_2024-05-28_10-50-07.jpg'), // Путь к вашей картинке
+            fit: BoxFit.cover, // Как изображение будет заполнять контейнер
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Чипсы для выбора трека
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Row(
+                      children: [
+                        InputChip(
+                          label: Text(trackName1 == 'Выберите файл +'
+                              ? '+'
+                              : trackName1.split('\\').last),
+                          onPressed: () {
+                            setState(() {
+                              selectedTrack = 1;
+                            });
+                          },
+                          selected: selectedTrack == 1,
+                        ),
+                        InkWell(
+                          // Используем InkWell для эффекта нажатия
+                          onTap: () => _pickAudioFile(1),
+                          borderRadius:
+                              BorderRadius.circular(20.0), // Закругляем кнопку
+                          child: Container(
+                            padding:
+                                const EdgeInsets.all(4.0), // Добавляем отступы
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle, // Делаем кнопку круглой
+                              color: Colors.grey, // Цвет фона кнопки
+                            ),
+                            child: const Icon(
+                              Icons.folder,
+                              color: Colors.white, // Цвет иконки
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        InputChip(
+                          label: Text(trackName2 == 'Выберите файл -'
+                              ? '-'
+                              : trackName2.split('\\').last),
+                          onPressed: () {
+                            setState(() {
+                              selectedTrack = 2;
+                            });
+                          },
+                          selected: selectedTrack == 2,
+                        ),
+                        InkWell(
+                          // Используем InkWell для эффекта нажатия
+                          onTap: () => _pickAudioFile(2),
+                          borderRadius:
+                              BorderRadius.circular(20.0), // Закругляем кнопку
+                          child: Container(
+                            padding:
+                                const EdgeInsets.all(4.0), // Добавляем отступы
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle, // Делаем кнопку круглой
+                              color: Colors.grey, // Цвет фона кнопки
+                            ),
+                            child: const Icon(
+                              Icons.folder,
+                              color: Colors.white, // Цвет иконки
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Кнопка для сохранения точек останова
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      InputChip(
-                        label: Text(trackName1 == 'Выберите файл +'
-                            ? '+'
-                            : trackName1.split('\\').last),
-                        onPressed: () {
-                          setState(() {
-                            selectedTrack = 1;
-                          });
-                        },
-                        selected: selectedTrack == 1,
-                      ),
-                      InkWell(
-                        // Используем InkWell для эффекта нажатия
-                        onTap: () => _pickAudioFile(1),
-                        borderRadius:
-                            BorderRadius.circular(20.0), // Закругляем кнопку
-                        child: Container(
-                          padding:
-                              const EdgeInsets.all(4.0), // Добавляем отступы
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle, // Делаем кнопку круглой
-                            color: Colors.grey, // Цвет фона кнопки
-                          ),
-                          child: const Icon(
-                            Icons.folder,
-                            color: Colors.white, // Цвет иконки
-                          ),
-                        ),
-                      ),
-                    ],
+                  // Кнопка "В начало"
+                  IconButton(
+                    iconSize: 50,
+                    icon: const Icon(Icons.skip_previous),
+                    onPressed: _seekToStart,
                   ),
-                  Row(
-                    children: [
-                      InputChip(
-                        label: Text(trackName2 == 'Выберите файл -'
-                            ? '-'
-                            : trackName2.split('\\').last),
-                        onPressed: () {
-                          setState(() {
-                            selectedTrack = 2;
-                          });
-                        },
-                        selected: selectedTrack == 2,
-                      ),
-                      InkWell(
-                        // Используем InkWell для эффекта нажатия
-                        onTap: () => _pickAudioFile(2),
-                        borderRadius:
-                            BorderRadius.circular(20.0), // Закругляем кнопку
-                        child: Container(
-                          padding:
-                              const EdgeInsets.all(4.0), // Добавляем отступы
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle, // Делаем кнопку круглой
-                            color: Colors.grey, // Цвет фона кнопки
-                          ),
-                          child: const Icon(
-                            Icons.folder,
-                            color: Colors.white, // Цвет иконки
-                          ),
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    iconSize: 100,
+                    icon: Icon(
+                        isPlaying ? Icons.pause_circle : Icons.play_circle),
+                    onPressed: isPlaying ? _pauseSound : _playSound,
                   ),
-                  // Кнопка для сохранения точек останова
+                  // Кнопка для добавления точки останова
+                  IconButton(
+                    iconSize: 50,
+                    icon: const Icon(Icons.add_circle),
+                    onPressed: _addBreakpoint,
+                  ),
+
                   ElevatedButton(
                     onPressed: () {
                       // Сохраняем точки останова для текущего трека
@@ -437,163 +474,141 @@ class _MainPageState extends State<MainPage> {
                         _saveBreakpoints(trackName2);
                       }
                     },
-                    child: const Text('Сохранить точки останова'),
+                    child: const Text('Сохранить точки'),
                   ),
                 ],
               ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Кнопка "В начало"
-                IconButton(
-                  iconSize: 50,
-                  icon: const Icon(Icons.skip_previous),
-                  onPressed: _seekToStart,
-                ),
-                IconButton(
-                  iconSize: 100,
-                  icon:
-                      Icon(isPlaying ? Icons.pause_circle : Icons.play_circle),
-                  onPressed: isPlaying ? _pauseSound : _playSound,
-                ),
-                // Кнопка для добавления точки останова
-                IconButton(
-                  iconSize: 50,
-                  icon: const Icon(Icons.add_circle),
-                  onPressed: _addBreakpoint,
-                ),
-              ],
-            ),
-            // Внутри Stack, где отрисовываются точки останова
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // constraints.maxWidth - это ширина слайдера
-                return Stack(
-                  children: [
-                    Slider(
-                      min: 0,
-                      max: duration.inSeconds.toDouble(),
-                      value: position.inSeconds.toDouble(),
-                      onChanged: (double value) async {
-                        await player.seek(Duration(seconds: value.toInt()));
-                      },
-                    ),
-                    ...currentBreakpoints.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final breakpoint = entry.value;
-                      final breakpointPosition =
-                          breakpoint.position.inSeconds.toDouble();
+              // Внутри Stack, где отрисовываются точки останова
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // constraints.maxWidth - это ширина слайдера
+                  return Stack(
+                    children: [
+                      Slider(
+                        min: 0,
+                        max: duration.inSeconds.toDouble(),
+                        value: position.inSeconds.toDouble(),
+                        onChanged: (double value) async {
+                          await player.seek(Duration(seconds: value.toInt()));
+                        },
+                      ),
+                      ...currentBreakpoints.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final breakpoint = entry.value;
+                        final breakpointPosition =
+                            breakpoint.position.inSeconds.toDouble();
 
-                      // Вычисляем точное процентное положение точки останова
-                      final percent = duration.inSeconds == 0
-                          ? 0
-                          : breakpointPosition / duration.inSeconds;
+                        // Вычисляем точное процентное положение точки останова
+                        final percent = duration.inSeconds == 0
+                            ? 0
+                            : breakpointPosition / duration.inSeconds;
 
-                      // Рассчитываем точную позицию треугольника, учитывая ширину слайдера и padding
-                      final sliderTrackWidth = constraints.maxWidth - 48;
-                      final triangleLeftPosition =
-                          sliderTrackWidth * percent + 14; //
+                        // Рассчитываем точную позицию треугольника, учитывая ширину слайдера и padding
+                        final sliderTrackWidth = constraints.maxWidth - 48;
+                        final triangleLeftPosition =
+                            sliderTrackWidth * percent + 14; //
 
-                      // Ограничиваем позицию треугольника в пределах слайдера
-                      final constrainedPosition = triangleLeftPosition.clamp(
-                          0.0, sliderTrackWidth + 14);
+                        // Ограничиваем позицию треугольника в пределах слайдера
+                        final constrainedPosition = triangleLeftPosition.clamp(
+                            0.0, sliderTrackWidth + 14);
 
-                      return Positioned(
-                        left:
-                            constrainedPosition, // Ограниченная позиция треугольника
-                        child: GestureDetector(
-                          onHorizontalDragStart: (details) {
-                            setState(() {
-                              draggingBreakpointIndex = index;
-                            });
-                          },
-                          onHorizontalDragUpdate: (details) {
-                            final renderBox =
-                                context.findRenderObject() as RenderBox;
-                            final localPosition = renderBox
-                                .globalToLocal(details.globalPosition)
-                                .dx;
+                        return Positioned(
+                          left:
+                              constrainedPosition, // Ограниченная позиция треугольника
+                          child: GestureDetector(
+                            onHorizontalDragStart: (details) {
+                              setState(() {
+                                draggingBreakpointIndex = index;
+                              });
+                            },
+                            onHorizontalDragUpdate: (details) {
+                              final renderBox =
+                                  context.findRenderObject() as RenderBox;
+                              final localPosition = renderBox
+                                  .globalToLocal(details.globalPosition)
+                                  .dx;
 
-                            // Рассчитываем новое положение точки как процент от ширины слайдера
-                            final newPositionPercent =
-                                (localPosition) / sliderTrackWidth;
-                            final newPosition = Duration(
-                                seconds:
-                                    (duration.inSeconds * newPositionPercent)
-                                        .toInt());
+                              // Рассчитываем новое положение точки как процент от ширины слайдера
+                              final newPositionPercent =
+                                  (localPosition) / sliderTrackWidth;
+                              final newPosition = Duration(
+                                  seconds:
+                                      (duration.inSeconds * newPositionPercent)
+                                          .toInt());
 
-                            setState(() {
-                              if (newPosition >= Duration.zero &&
-                                  newPosition <= duration) {
-                                currentBreakpoints[index] =
-                                    currentBreakpoints[index]
-                                        .copyWith(position: newPosition);
-                              }
-                            });
-                          },
-                          onHorizontalDragEnd: (details) {
-                            setState(() {
-                              draggingBreakpointIndex = null;
-                            });
-                          },
-                          child: SizedBox(
-                            height: 40,
-                            width: 20,
-                            child: CustomPaint(
-                              painter: TrianglePainter(
-                                strokeColor: draggingBreakpointIndex == index
-                                    ? Colors.red
-                                    : Colors.blue,
-                                strokeWidth: 2,
+                              setState(() {
+                                if (newPosition >= Duration.zero &&
+                                    newPosition <= duration) {
+                                  currentBreakpoints[index] =
+                                      currentBreakpoints[index]
+                                          .copyWith(position: newPosition);
+                                }
+                              });
+                            },
+                            onHorizontalDragEnd: (details) {
+                              setState(() {
+                                draggingBreakpointIndex = null;
+                              });
+                            },
+                            child: SizedBox(
+                              height: 40,
+                              width: 20,
+                              child: CustomPaint(
+                                painter: TrianglePainter(
+                                  strokeColor: draggingBreakpointIndex == index
+                                      ? Colors.red
+                                      : Colors.blue,
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    }),
-                  ],
-                );
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(formatDuration(position)),
-                  Text(formatDuration(duration)),
-                ],
-              ),
-            ),
-            // Список точек останова
-            Expanded(
-              child: ListView.builder(
-                itemCount: currentBreakpoints.length,
-                itemBuilder: (context, index) {
-                  final breakpoint = currentBreakpoints[index];
-                  return Card(
-                    child: ListTile(
-                      title: Text(breakpoint.name),
-                      subtitle: Text(breakpoint.description),
-                      onTap: () {
-                        // Переход к точке останова
-                        player.seek(breakpoint.position);
-                      },
-                      // Добавляем trailing для отображения кнопки редактирования
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          // Открываем диалог для редактирования точки останова
-                          _editBreakpoint(index);
-                        },
-                      ),
-                    ),
+                        );
+                      }),
+                    ],
                   );
                 },
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(formatDuration(position)),
+                    Text(formatDuration(duration)),
+                  ],
+                ),
+              ),
+              // Список точек останова
+              Expanded(
+                child: ListView.builder(
+                  itemCount: currentBreakpoints.length,
+                  itemBuilder: (context, index) {
+                    final breakpoint = currentBreakpoints[index];
+                    return Card(
+                      color: Colors.white.withOpacity(0.6),
+                      child: ListTile(
+                        title: Text(breakpoint.name),
+                        subtitle: Text(breakpoint.description),
+                        onTap: () {
+                          // Переход к точке останова
+                          player.seek(breakpoint.position);
+                        },
+                        // Добавляем trailing для отображения кнопки редактирования
+                        trailing: IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () {
+                            // Открываем диалог для редактирования точки останова
+                            _editBreakpoint(index);
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

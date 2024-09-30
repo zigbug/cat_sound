@@ -11,13 +11,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cat Sound',
+      debugShowCheckedModeBanner: false,
+      title: 'Life is... Sound Jumps',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 41, 154, 189)),
+            seedColor: const Color.fromARGB(255, 120, 233, 227)),
         useMaterial3: true,
       ),
-      home: const MainPage(title: 'Cat Sound'),
+      home: const MainPage(title: 'Life is... Sound Jumps'),
     );
   }
 }
