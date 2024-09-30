@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key, required this.title});
@@ -16,8 +21,16 @@ class _MainPageState extends State<MainPage> {
   Duration duration = Duration.zero;
   Duration position = Duration.zero;
 
-  // Список точек останова
-  List<Breakpoint> breakpoints = [];
+  // Названия треков
+  String trackName1 = 'Выберите файл +';
+  String trackName2 = 'Выберите файл -';
+
+  // Выбранный трек (1 или 2)
+  int selectedTrack = 1;
+
+  // Списки точек останова для каждого трека
+  List<Breakpoint> breakpoints1 = [];
+  List<Breakpoint> breakpoints2 = [];
 
   // Индекс перемещаемой точки останова (или null, если никакая не перемещается)
   int? draggingBreakpointIndex;
@@ -52,11 +65,101 @@ class _MainPageState extends State<MainPage> {
     super.dispose();
   }
 
+  // Функция для сохранения точек останова в файл
+  Future<void> _saveBreakpoints(String trackPath) async {
+    try {
+      // Получаем список точек останова для текущего трека
+      List<Breakpoint> currentBreakpoints =
+          selectedTrack == 1 ? breakpoints1 : breakpoints2;
+
+      // Преобразуем список точек останова в JSON
+      List<Map<String, dynamic>> breakpointsJson = currentBreakpoints
+          .map((breakpoint) => {
+                'name': breakpoint.name,
+                'description': breakpoint.description,
+                'position': breakpoint.position.inMilliseconds,
+              })
+          .toList();
+
+      // Создаем имя файла для сохранения точек останова
+      String fileName = path.basenameWithoutExtension(trackPath) + '.pstn';
+      String filePath = path.join(path.dirname(trackPath), fileName);
+
+      // Записываем JSON в файл
+      await File(filePath).writeAsString(jsonEncode(breakpointsJson));
+
+      print('Точки останова сохранены в: $filePath');
+    } catch (e) {
+      print('Ошибка при сохранении точек останова: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при сохранении точек останова')),
+      );
+    }
+  }
+
+  // Функция для загрузки точек останова из файла
+  Future<void> _loadBreakpoints(String trackPath) async {
+    try {
+      // Создаем имя файла для загрузки точек останова
+      String fileName = path.basenameWithoutExtension(trackPath) + '.pstn';
+      String filePath = path.join(path.dirname(trackPath), fileName);
+
+      // Проверяем, существует ли файл
+      if (await File(filePath).exists()) {
+        // Читаем JSON из файла
+        String jsonString = await File(filePath).readAsString();
+        List<dynamic> breakpointsJson = jsonDecode(jsonString);
+
+        // Преобразуем JSON в список точек останова
+        List<Breakpoint> loadedBreakpoints = breakpointsJson
+            .map((breakpointJson) => Breakpoint(
+                  name: breakpointJson['name'],
+                  description: breakpointJson['description'],
+                  position: Duration(milliseconds: breakpointJson['position']),
+                ))
+            .toList();
+
+        // Обновляем список точек останова для текущего трека
+        setState(() {
+          if (selectedTrack == 1) {
+            breakpoints1 = loadedBreakpoints;
+          } else {
+            breakpoints2 = loadedBreakpoints;
+          }
+        });
+
+        print('Точки останова загружены из: $filePath');
+      } else {
+        print('Файл с точками останова не найден: $filePath');
+      }
+    } catch (e) {
+      print('Ошибка при загрузке точек останова: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при загрузке точек останова')),
+      );
+    }
+  }
+
   Future<void> _playSound() async {
-    await player.play(AssetSource('01-ООР~1.MP3'));
-    setState(() {
-      isPlaying = true;
-    });
+    try {
+      // Определяем, какой трек проигрывать
+      String currentTrackName = selectedTrack == 1 ? trackName1 : trackName2;
+
+      // Если трек выбран, проигрываем его
+      if (currentTrackName != 'Выберите файл +' &&
+          currentTrackName != 'Выберите файл -') {
+        await player.play(DeviceFileSource(currentTrackName));
+        setState(() {
+          isPlaying = true;
+        });
+      }
+    } catch (e) {
+      // Обработка ошибок при проигрывании
+      print('Ошибка при проигрывании: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при проигрывании: $e')),
+      );
+    }
   }
 
   Future<void> _stopSound() async {
@@ -71,6 +174,39 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       isPlaying = false;
     });
+  }
+
+  // Функция для перемотки в начало трека
+  Future<void> _seekToStart() async {
+    await player.seek(Duration.zero);
+  }
+
+  // Функция для выбора файла с помощью file_picker
+  Future<void> _pickAudioFile(int trackNumber) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
+      );
+
+      if (result != null) {
+        String trackPath = result.files.single.path!;
+        setState(() {
+          if (trackNumber == 1) {
+            trackName1 = result.files.single.path!;
+          } else {
+            trackName2 = result.files.single.path!;
+          }
+        });
+        // Загружаем точки останова после выбора трека
+        _loadBreakpoints(trackPath);
+      }
+    } catch (e) {
+      // Обработка ошибок при выборе файла
+      print('Ошибка при выборе файла: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при выборе файла: $e')),
+      );
+    }
   }
 
   // Функция для добавления точки останова
@@ -116,11 +252,82 @@ class _MainPageState extends State<MainPage> {
               child: const Text('Добавить'),
               onPressed: () {
                 setState(() {
-                  breakpoints.add(Breakpoint(
-                    name: name,
-                    description: description,
-                    position: position,
-                  ));
+                  // Добавляем точку останова в соответствующий список
+                  if (selectedTrack == 1) {
+                    breakpoints1.add(Breakpoint(
+                      name: name,
+                      description: description,
+                      position: position,
+                    ));
+                  } else {
+                    breakpoints2.add(Breakpoint(
+                      name: name,
+                      description: description,
+                      position: position,
+                    ));
+                  }
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Функция для редактирования точки останова
+  void _editBreakpoint(int index) {
+    // Ставим на паузу при открытии диалога
+    if (isPlaying) {
+      _pauseSound();
+    }
+
+    // Определяем, к какому списку относится точка останова
+    List<Breakpoint> currentBreakpoints =
+        selectedTrack == 1 ? breakpoints1 : breakpoints2;
+
+    // Создаем копию точки останова для редактирования
+    Breakpoint editedBreakpoint = currentBreakpoints[index];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Редактировать точку останова'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                decoration: const InputDecoration(labelText: 'Название'),
+                controller: TextEditingController(text: editedBreakpoint.name),
+                onChanged: (value) {
+                  editedBreakpoint = editedBreakpoint.copyWith(name: value);
+                },
+              ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Описание'),
+                controller:
+                    TextEditingController(text: editedBreakpoint.description),
+                onChanged: (value) {
+                  editedBreakpoint =
+                      editedBreakpoint.copyWith(description: value);
+                },
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Отмена'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Сохранить'),
+              onPressed: () {
+                setState(() {
+                  currentBreakpoints[index] = editedBreakpoint;
                 });
                 Navigator.of(context).pop();
               },
@@ -133,6 +340,10 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Определяем текущий список точек останова
+    List<Breakpoint> currentBreakpoints =
+        selectedTrack == 1 ? breakpoints1 : breakpoints2;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -142,9 +353,104 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Чипсы для выбора трека
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Row(
+                    children: [
+                      InputChip(
+                        label: Text(trackName1 == 'Выберите файл +'
+                            ? '+'
+                            : trackName1.split('\\').last),
+                        onPressed: () {
+                          setState(() {
+                            selectedTrack = 1;
+                          });
+                        },
+                        selected: selectedTrack == 1,
+                      ),
+                      InkWell(
+                        // Используем InkWell для эффекта нажатия
+                        onTap: () => _pickAudioFile(1),
+                        borderRadius:
+                            BorderRadius.circular(20.0), // Закругляем кнопку
+                        child: Container(
+                          padding:
+                              const EdgeInsets.all(4.0), // Добавляем отступы
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle, // Делаем кнопку круглой
+                            color: Colors.grey, // Цвет фона кнопки
+                          ),
+                          child: const Icon(
+                            Icons.folder,
+                            color: Colors.white, // Цвет иконки
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      InputChip(
+                        label: Text(trackName2 == 'Выберите файл -'
+                            ? '-'
+                            : trackName2.split('\\').last),
+                        onPressed: () {
+                          setState(() {
+                            selectedTrack = 2;
+                          });
+                        },
+                        selected: selectedTrack == 2,
+                      ),
+                      InkWell(
+                        // Используем InkWell для эффекта нажатия
+                        onTap: () => _pickAudioFile(2),
+                        borderRadius:
+                            BorderRadius.circular(20.0), // Закругляем кнопку
+                        child: Container(
+                          padding:
+                              const EdgeInsets.all(4.0), // Добавляем отступы
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle, // Делаем кнопку круглой
+                            color: Colors.grey, // Цвет фона кнопки
+                          ),
+                          child: const Icon(
+                            Icons.folder,
+                            color: Colors.white, // Цвет иконки
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Кнопка для сохранения точек останова
+                  ElevatedButton(
+                    onPressed: () {
+                      // Сохраняем точки останова для текущего трека
+                      if (selectedTrack == 1 &&
+                          trackName1 != 'Выберите файл +') {
+                        _saveBreakpoints(trackName1);
+                      } else if (selectedTrack == 2 &&
+                          trackName2 != 'Выберите файл -') {
+                        _saveBreakpoints(trackName2);
+                      }
+                    },
+                    child: const Text('Сохранить точки останова'),
+                  ),
+                ],
+              ),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Кнопка "В начало"
+                IconButton(
+                  iconSize: 50,
+                  icon: const Icon(Icons.skip_previous),
+                  onPressed: _seekToStart,
+                ),
                 IconButton(
                   iconSize: 100,
                   icon:
@@ -173,7 +479,7 @@ class _MainPageState extends State<MainPage> {
                         await player.seek(Duration(seconds: value.toInt()));
                       },
                     ),
-                    ...breakpoints.asMap().entries.map((entry) {
+                    ...currentBreakpoints.asMap().entries.map((entry) {
                       final index = entry.key;
                       final breakpoint = entry.value;
                       final breakpointPosition =
@@ -220,8 +526,9 @@ class _MainPageState extends State<MainPage> {
                             setState(() {
                               if (newPosition >= Duration.zero &&
                                   newPosition <= duration) {
-                                breakpoints[index] = breakpoints[index]
-                                    .copyWith(position: newPosition);
+                                currentBreakpoints[index] =
+                                    currentBreakpoints[index]
+                                        .copyWith(position: newPosition);
                               }
                             });
                           },
@@ -262,9 +569,9 @@ class _MainPageState extends State<MainPage> {
             // Список точек останова
             Expanded(
               child: ListView.builder(
-                itemCount: breakpoints.length,
+                itemCount: currentBreakpoints.length,
                 itemBuilder: (context, index) {
-                  final breakpoint = breakpoints[index];
+                  final breakpoint = currentBreakpoints[index];
                   return Card(
                     child: ListTile(
                       title: Text(breakpoint.name),
@@ -289,64 +596,6 @@ class _MainPageState extends State<MainPage> {
           ],
         ),
       ),
-    );
-  }
-
-  // Функция для редактирования точки останова
-  void _editBreakpoint(int index) {
-    // Ставим на паузу при открытии диалога
-    if (isPlaying) {
-      _pauseSound();
-    }
-
-    // Создаем копию точки останова для редактирования
-    Breakpoint editedBreakpoint = breakpoints[index];
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Редактировать точку останова'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(
-                decoration: const InputDecoration(labelText: 'Название'),
-                controller: TextEditingController(text: editedBreakpoint.name),
-                onChanged: (value) {
-                  editedBreakpoint = editedBreakpoint.copyWith(name: value);
-                },
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Описание'),
-                controller:
-                    TextEditingController(text: editedBreakpoint.description),
-                onChanged: (value) {
-                  editedBreakpoint =
-                      editedBreakpoint.copyWith(description: value);
-                },
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Отмена'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Сохранить'),
-              onPressed: () {
-                setState(() {
-                  breakpoints[index] = editedBreakpoint;
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 
