@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 
 class MainPage extends StatefulWidget {
@@ -57,12 +58,29 @@ class _MainPageState extends State<MainPage> {
         duration = newDuration;
       });
     });
+
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     player.dispose();
     super.dispose();
+  }
+
+  // Keyboard handler function
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event.logicalKey == LogicalKeyboardKey.space && event is KeyDownEvent) {
+      // Обрабатываем нажатие на пробел
+      if (isPlaying) {
+        _pauseSound();
+      } else {
+        _playSound();
+      }
+      return true; // Prevent default behavior
+    }
+    return false; // Allow default behavior
   }
 
   // Функция для сохранения точек останова в файл
@@ -87,8 +105,9 @@ class _MainPageState extends State<MainPage> {
 
       // Записываем JSON в файл
       await File(filePath).writeAsString(jsonEncode(breakpointsJson));
-
-      print('Точки останова сохранены в: $filePath');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Точки останова сохранены в: $filePath')),
+      );
     } catch (e) {
       print('Ошибка при сохранении точек останова: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +120,7 @@ class _MainPageState extends State<MainPage> {
   Future<void> _loadBreakpoints(String trackPath) async {
     try {
       // Создаем имя файла для загрузки точек останова
-      String fileName = path.basenameWithoutExtension(trackPath) + '.pstn';
+      String fileName = '${path.basenameWithoutExtension(trackPath)}.pstn';
       String filePath = path.join(path.dirname(trackPath), fileName);
 
       // Проверяем, существует ли файл
@@ -131,6 +150,13 @@ class _MainPageState extends State<MainPage> {
         print('Точки останова загружены из: $filePath');
       } else {
         print('Файл с точками останова не найден: $filePath');
+        setState(() {
+          if (selectedTrack == 1) {
+            breakpoints1 = [];
+          } else {
+            breakpoints2 = [];
+          }
+        });
       }
     } catch (e) {
       print('Ошибка при загрузке точек останова: $e');
@@ -338,6 +364,42 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  /// Функция для удаления точки останова
+  void _deleteBreakpoint(int index) {
+    // Подтверждение удаления
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Удалить точку'),
+          content: const Text('Уверены, что хотите удалить эту точку?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Отмена'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Удалить'),
+              onPressed: () {
+                setState(() {
+                  // Удаляем точку останова из соответствующего списка
+                  if (selectedTrack == 1) {
+                    breakpoints1.removeAt(index);
+                  } else {
+                    breakpoints2.removeAt(index);
+                  }
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Определяем текущий список точек останова
@@ -384,21 +446,25 @@ class _MainPageState extends State<MainPage> {
                           },
                           selected: selectedTrack == 1,
                         ),
-                        InkWell(
-                          // Используем InkWell для эффекта нажатия
-                          onTap: () => _pickAudioFile(1),
-                          borderRadius:
-                              BorderRadius.circular(20.0), // Закругляем кнопку
-                          child: Container(
-                            padding:
-                                const EdgeInsets.all(4.0), // Добавляем отступы
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle, // Делаем кнопку круглой
-                              color: Colors.grey, // Цвет фона кнопки
-                            ),
-                            child: const Icon(
-                              Icons.folder,
-                              color: Colors.white, // Цвет иконки
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: InkWell(
+                            // Используем InkWell для эффекта нажатия
+                            onTap: () => _pickAudioFile(1),
+                            borderRadius: BorderRadius.circular(
+                                20.0), // Закругляем кнопку
+                            child: Container(
+                              padding: const EdgeInsets.all(
+                                  4.0), // Добавляем отступы
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle, // Делаем кнопку круглой
+                                color: Color.fromARGB(
+                                    255, 147, 223, 219), // Цвет фона кнопки
+                              ),
+                              child: const Icon(
+                                Icons.folder,
+                                color: Colors.white, // Цвет иконки
+                              ),
                             ),
                           ),
                         ),
@@ -417,21 +483,25 @@ class _MainPageState extends State<MainPage> {
                           },
                           selected: selectedTrack == 2,
                         ),
-                        InkWell(
-                          // Используем InkWell для эффекта нажатия
-                          onTap: () => _pickAudioFile(2),
-                          borderRadius:
-                              BorderRadius.circular(20.0), // Закругляем кнопку
-                          child: Container(
-                            padding:
-                                const EdgeInsets.all(4.0), // Добавляем отступы
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle, // Делаем кнопку круглой
-                              color: Colors.grey, // Цвет фона кнопки
-                            ),
-                            child: const Icon(
-                              Icons.folder,
-                              color: Colors.white, // Цвет иконки
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: InkWell(
+                            // Используем InkWell для эффекта нажатия
+                            onTap: () => _pickAudioFile(2),
+                            borderRadius: BorderRadius.circular(
+                                20.0), // Закругляем кнопку
+                            child: Container(
+                              padding: const EdgeInsets.all(
+                                  4.0), // Добавляем отступы
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle, // Делаем кнопку круглой
+                                color: Color.fromARGB(
+                                    255, 147, 223, 219), // Цвет фона кнопки
+                              ),
+                              child: const Icon(
+                                Icons.folder,
+                                color: Colors.white, // Цвет иконки
+                              ),
                             ),
                           ),
                         ),
@@ -461,20 +531,6 @@ class _MainPageState extends State<MainPage> {
                     iconSize: 50,
                     icon: const Icon(Icons.add_circle),
                     onPressed: _addBreakpoint,
-                  ),
-
-                  ElevatedButton(
-                    onPressed: () {
-                      // Сохраняем точки останова для текущего трека
-                      if (selectedTrack == 1 &&
-                          trackName1 != 'Выберите файл +') {
-                        _saveBreakpoints(trackName1);
-                      } else if (selectedTrack == 2 &&
-                          trackName2 != 'Выберите файл -') {
-                        _saveBreakpoints(trackName2);
-                      }
-                    },
-                    child: const Text('Сохранить точки'),
                   ),
                 ],
               ),
@@ -579,7 +635,28 @@ class _MainPageState extends State<MainPage> {
                   ],
                 ),
               ),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Сохраняем точки останова для текущего трека
+                      if (selectedTrack == 1 &&
+                          trackName1 != 'Выберите файл +') {
+                        _saveBreakpoints(trackName1);
+                      } else if (selectedTrack == 2 &&
+                          trackName2 != 'Выберите файл -') {
+                        _saveBreakpoints(trackName2);
+                      }
+                    },
+                    child: const Text('Сохранить точки'),
+                  ),
+                ),
+              ),
               // Список точек останова
+
               Expanded(
                 child: ListView.builder(
                   itemCount: currentBreakpoints.length,
@@ -594,13 +671,25 @@ class _MainPageState extends State<MainPage> {
                           // Переход к точке останова
                           player.seek(breakpoint.position);
                         },
-                        // Добавляем trailing для отображения кнопки редактирования
-                        trailing: IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () {
-                            // Открываем диалог для редактирования точки останова
-                            _editBreakpoint(index);
-                          },
+                        // Добавляем trailing для отображения кнопок
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () {
+                                // Открываем диалог для редактирования точки останова
+                                _editBreakpoint(index);
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () {
+                                // Вызываем функцию удаления точки останова
+                                _deleteBreakpoint(index);
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     );

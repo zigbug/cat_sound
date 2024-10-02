@@ -12,13 +12,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Life is... Sound Jumps',
+      title: 'Life is... Skipping rope',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
             seedColor: const Color.fromARGB(255, 120, 233, 227)),
         useMaterial3: true,
       ),
-      home: const MainPage(title: 'Life is... Sound Jumps'),
+      home: const MainPage(title: 'Life is... Skipping rope'),
     );
   }
 }
