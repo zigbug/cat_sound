@@ -105,11 +105,11 @@ class _MainPageState extends State<MainPage> {
 
       // Записываем JSON в файл
       await File(filePath).writeAsString(jsonEncode(breakpointsJson));
+      Process.run('attrib', ['+h', filePath]);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Точки останова сохранены в: $filePath')),
       );
     } catch (e) {
-      print('Ошибка при сохранении точек останова: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ошибка при сохранении точек останова')),
       );
@@ -146,22 +146,24 @@ class _MainPageState extends State<MainPage> {
             breakpoints2 = loadedBreakpoints;
           }
         });
-
-        print('Точки останова загружены из: $filePath');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(('Точки останова загружены из: $filePath')),
+        ));
       } else {
-        print('Файл с точками останова не найден: $filePath');
         setState(() {
           if (selectedTrack == 1) {
             breakpoints1 = [];
           } else {
             breakpoints2 = [];
           }
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(('Для этого трека пока нет точек останова')),
+          ));
         });
       }
     } catch (e) {
-      print('Ошибка при загрузке точек останова: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка при загрузке точек останова')),
+        const SnackBar(content: Text('Ошибка при загрузке точек останова')),
       );
     }
   }
@@ -228,7 +230,6 @@ class _MainPageState extends State<MainPage> {
       }
     } catch (e) {
       // Обработка ошибок при выборе файла
-      print('Ошибка при выборе файла: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка при выборе файла: $e')),
       );
