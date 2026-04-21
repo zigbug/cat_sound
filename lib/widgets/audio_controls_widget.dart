@@ -1,3 +1,4 @@
+import 'package:cat_sound/widgets/add_breakpoint_button.dart';
 import 'package:flutter/material.dart';
 
 /// Виджет кнопок управления воспроизведением
@@ -7,7 +8,6 @@ class AudioControlsWidget extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onPlay;
   final VoidCallback onPause;
-  final VoidCallback onStop;
   final VoidCallback onSeekToStart;
 
   const AudioControlsWidget({
@@ -17,7 +17,6 @@ class AudioControlsWidget extends StatelessWidget {
     required this.isPlaying,
     required this.onPlay,
     required this.onPause,
-    required this.onStop,
     required this.onSeekToStart,
   });
 
@@ -40,12 +39,8 @@ class AudioControlsWidget extends StatelessWidget {
           ),
           onPressed: isPlaying ? onPause : onPlay,
         ),
-        // Кнопка остановки
-        IconButton(
-          iconSize: 50,
-          icon: const Icon(Icons.stop),
-          onPressed: onStop,
-        ),
+        // Кнопка добавления точки
+        const AddBreakpointButton(),
       ],
     );
   }

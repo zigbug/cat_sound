@@ -117,7 +117,6 @@ class MainPage extends StatelessWidget {
       isPlaying: state.isPlaying,
       onPlay: () => context.read<AudioBloc>().add(const AudioPlayRequested()),
       onPause: () => context.read<AudioBloc>().add(const AudioPauseRequested()),
-      onStop: () => context.read<AudioBloc>().add(const AudioStopRequested()),
       onSeekToStart: () =>
           context.read<AudioBloc>().add(const AudioSeekToStartRequested()),
     );
@@ -158,33 +157,21 @@ class MainPage extends StatelessWidget {
   }
 
   Widget _buildBreakpointList(BuildContext context, AudioFullState state) {
-    return Column(
-      children: [
-        // Кнопка добавления точки
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: AddBreakpointButton(),
-        ),
-        // Список точек (используем Expanded для ограничения высоты)
-        Expanded(
-          child: ListView.builder(
-            itemCount: state.currentBreakpoints.length,
-            itemBuilder: (context, index) {
-              final breakpoint = state.currentBreakpoints[index];
-              return BreakpointListItem(
-                breakpoint: breakpoint,
-                onTap: () => context.read<AudioBloc>().add(
-                    AudioSeekToPositionRequested(
-                        position: breakpoint.position)),
-                onEdit: () => _showEditBreakpointDialog(
-                    context, index, state.selectedTrack),
-                onDelete: () => _showDeleteConfirmationDialog(
-                    context, index, state.selectedTrack),
-              );
-            },
-          ),
-        ),
-      ],
+    return ListView.builder(
+      itemCount: state.currentBreakpoints.length,
+      itemBuilder: (context, index) {
+        final breakpoint = state.currentBreakpoints[index];
+        return BreakpointListItem(
+          breakpoint: breakpoint,
+          onTap: () => context
+              .read<AudioBloc>()
+              .add(AudioSeekToPositionRequested(position: breakpoint.position)),
+          onEdit: () =>
+              _showEditBreakpointDialog(context, index, state.selectedTrack),
+          onDelete: () => _showDeleteConfirmationDialog(
+              context, index, state.selectedTrack),
+        );
+      },
     );
   }
 
