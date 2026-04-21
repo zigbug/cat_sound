@@ -34,6 +34,9 @@ class AudioBloc extends Bloc<AudioEvent, AudioFullState> {
     on<AudioBreakpointsSaved>(_onBreakpointsSaved);
     on<AudioBreakpointsLoaded>(_onBreakpointsLoaded);
     on<AudioBreakpointDragged>(_onBreakpointDragged);
+    on<_AudioPositionChanged>(_onPositionChanged);
+    on<_AudioDurationChanged>(_onDurationChanged);
+    on<_ShowSnackBar>(_onShowSnackBar);
 
     // Инициализация слушателей аудио
     _initAudioListeners();
@@ -253,7 +256,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioFullState> {
           ));
         }
 
-        add(_ShowSnackBar('Точки останова загружены'));
+        add(const _ShowSnackBar('Точки останова загружены'));
       } else {
         // Файл не найден - очищаем список
         if (event.filePath == state.track1Path) {
@@ -265,7 +268,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioFullState> {
             breakpoints2: [],
           ));
         }
-        add(_ShowSnackBar('Для этого трека пока нет точек останова'));
+        add(const _ShowSnackBar('Для этого трека пока нет точек останова'));
       }
     } catch (e) {
       emit(state.copyWith(
@@ -298,6 +301,20 @@ class AudioBloc extends Bloc<AudioEvent, AudioFullState> {
         ));
       }
     }
+  }
+
+  void _onPositionChanged(
+      _AudioPositionChanged event, Emitter<AudioFullState> emit) {
+    emit(state.copyWith(position: event.position));
+  }
+
+  void _onDurationChanged(
+      _AudioDurationChanged event, Emitter<AudioFullState> emit) {
+    emit(state.copyWith(duration: event.duration));
+  }
+
+  void _onShowSnackBar(_ShowSnackBar event, Emitter<AudioFullState> emit) {
+    // Уведомление обрабатывается в UI через BlocListener
   }
 
   @override

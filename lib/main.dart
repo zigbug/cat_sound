@@ -21,14 +21,14 @@ class MyApp extends StatelessWidget {
       ),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Life is... Skipping rope',
+        title: 'Skipping rope player',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color.fromARGB(255, 120, 233, 227),
           ),
           useMaterial3: true,
         ),
-        home: const MainPage(title: 'Life is... Skipping rope'),
+        home: const MainPage(title: 'Skipping rope player'),
       ),
     );
   }
