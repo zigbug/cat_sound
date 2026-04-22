@@ -8,7 +8,6 @@ import '../widgets/track_selector_widget.dart';
 import '../widgets/audio_controls_widget.dart';
 import '../widgets/audio_slider_widget.dart';
 import '../widgets/breakpoint_list_widget.dart';
-import '../widgets/add_breakpoint_button.dart';
 import '../widgets/save_breakpoints_button.dart';
 import '../widgets/time_display_widget.dart';
 
@@ -21,62 +20,98 @@ class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AudioBloc, AudioFullState>(
-      listener: (context, state) {
-        // Показываем уведомления
-        if (state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!)),
-          );
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: Text(
-            title,
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        body: BlocBuilder<AudioBloc, AudioFullState>(
-          builder: (context, state) {
-            return _buildBody(context, state);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(BuildContext context, AudioFullState state) {
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          opacity: 0.4,
-          image: AssetImage('assets/bckgrnd.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Выбор треков
-            _buildTrackSelector(context, state),
-            // Контролы воспроизведения
-            _buildAudioControls(context, state),
-            // Слайдер с точками останова
-            _buildAudioSlider(context, state),
-            // Время
-            _buildTimeDisplay(state),
-            // Кнопка сохранения
-            const SaveBreakpointsButton(),
-            // Список точек останова
-            Expanded(
-              child: _buildBreakpointList(context, state),
+        listener: (context, state) {
+          // Показываем уведомления
+          if (state.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage!)),
+            );
+          }
+        },
+        child: Scaffold(
+            appBar: AppBar(
+              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+              title: Text(
+                title,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
-          ],
-        ),
-      ),
-    );
+            body: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  opacity: 0.4,
+                  image: AssetImage('assets/bckgrnd.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      children: [
+                        Image.asset('assets/backgnd_control_pan.png'),
+                        Column(
+                          children: [
+                            // Выбор треков
+                            BlocBuilder<AudioBloc, AudioFullState>(
+                                buildWhen: (previous, current) =>
+                                    previous.track1Path != current.track1Path ||
+                                    previous.track2Path != current.track2Path,
+                                builder: (context, state) {
+                                  return _buildTrackSelector(context, state);
+                                }),
+                            SizedBox(height: 20),
+
+                            // Контролы воспроизведения
+                            BlocBuilder<AudioBloc, AudioFullState>(
+                                buildWhen: (previous, current) =>
+                                    (previous.track1Path !=
+                                            current.track1Path ||
+                                        previous.track2Path !=
+                                            current.track2Path) ||
+                                    previous.isPlaying != current.isPlaying,
+                                builder: (context, state) {
+                                  return _buildAudioControls(context, state);
+                                }),
+                            SizedBox(height: 20),
+
+                            // Слайдер с точками останова
+                            BlocBuilder<AudioBloc, AudioFullState>(
+                                builder: (context, state) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildAudioSlider(context, state),
+                                  _buildTimeDisplay(state),
+                                ],
+                              );
+                            }),
+                          ],
+                        )
+                      ],
+                    ),
+
+                    // Время
+
+                    // Кнопка сохранения
+                    const SaveBreakpointsButton(),
+
+                    // Слайдер с точками останова
+                    BlocBuilder<AudioBloc, AudioFullState>(
+                        buildWhen: (previous, current) =>
+                            previous.currentBreakpoints !=
+                            current.currentBreakpoints,
+                        builder: (context, state) {
+                          return Expanded(
+                            child: _buildBreakpointList(context, state),
+                          );
+                        }),
+                    // Список точек останова
+                  ],
+                ),
+              ),
+            )));
   }
 
   Widget _buildTrackSelector(BuildContext context, AudioFullState state) {
@@ -111,6 +146,7 @@ class MainPage extends StatelessWidget {
   }
 
   Widget _buildAudioControls(BuildContext context, AudioFullState state) {
+    print('rebuilding audio controls');
     return AudioControlsWidget(
       duration: state.duration,
       position: state.position,
@@ -119,6 +155,8 @@ class MainPage extends StatelessWidget {
       onPause: () => context.read<AudioBloc>().add(const AudioPauseRequested()),
       onSeekToStart: () =>
           context.read<AudioBloc>().add(const AudioSeekToStartRequested()),
+      activateButtons: state.currentTrackPath != 'Выберите файл +' &&
+          state.currentTrackPath != 'Выберите файл -',
     );
   }
 

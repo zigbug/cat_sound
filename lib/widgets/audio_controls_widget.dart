@@ -1,4 +1,5 @@
 import 'package:cat_sound/widgets/add_breakpoint_button.dart';
+import 'package:cat_sound/widgets/button.dart';
 import 'package:flutter/material.dart';
 
 /// Виджет кнопок управления воспроизведением
@@ -9,6 +10,7 @@ class AudioControlsWidget extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onPause;
   final VoidCallback onSeekToStart;
+  final bool activateButtons;
 
   const AudioControlsWidget({
     super.key,
@@ -18,6 +20,7 @@ class AudioControlsWidget extends StatelessWidget {
     required this.onPlay,
     required this.onPause,
     required this.onSeekToStart,
+    required this.activateButtons,
   });
 
   @override
@@ -26,18 +29,22 @@ class AudioControlsWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Кнопка "В начало"
-        IconButton(
-          iconSize: 50,
-          icon: const Icon(Icons.skip_previous),
-          onPressed: onSeekToStart,
-        ),
+        GlassButton(
+            width: 80,
+            height: 80,
+            key: const Key('toStart'),
+            active: activateButtons,
+            onPressed: onSeekToStart,
+            signToShow: Image.asset('assets/pause_sign.png')),
+
         // Кнопка Play/Pause
-        IconButton(
-          iconSize: 100,
-          icon: Icon(
-            isPlaying ? Icons.pause_circle : Icons.play_circle,
-          ),
+        GlassButton(
+          key: const Key('play'),
+          active: activateButtons,
           onPressed: isPlaying ? onPause : onPlay,
+          signToShow: isPlaying
+              ? Image.asset('assets/pause_sign.png')
+              : Image.asset('assets/play_sign.png'),
         ),
         // Кнопка добавления точки
         const AddBreakpointButton(),

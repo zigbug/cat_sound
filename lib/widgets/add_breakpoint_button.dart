@@ -1,3 +1,4 @@
+import 'package:cat_sound/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/audio_bloc.dart';
@@ -5,15 +6,19 @@ import '../bloc/audio_event.dart';
 
 /// Виджет кнопки добавления точки останова
 class AddBreakpointButton extends StatelessWidget {
-  const AddBreakpointButton({super.key});
+  final bool activateButtons;
+
+  const AddBreakpointButton({super.key, this.activateButtons = true});
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      iconSize: 50,
-      icon: const Icon(Icons.add_circle),
-      onPressed: () => _showAddBreakpointDialog(context),
-    );
+    return GlassButton(
+        width: 80,
+        height: 80,
+        key: const Key('toStart'),
+        active: activateButtons,
+        onPressed: () => _showAddBreakpointDialog(context),
+        signToShow: Image.asset('assets/pause_sign.png'));
   }
 
   void _showAddBreakpointDialog(BuildContext context) {
